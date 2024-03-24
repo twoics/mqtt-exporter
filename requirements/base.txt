@@ -1,2 +1,2 @@
-paho-mqtt
-prometheus-client
+paho-mqtt==1.6.1
+prometheus-client==0.20.0
