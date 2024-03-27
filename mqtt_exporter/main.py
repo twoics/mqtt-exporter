@@ -14,6 +14,8 @@ import paho.mqtt.client as mqtt
 from prometheus_client import Counter, Gauge, metrics, start_http_server
 
 from mqtt_exporter import settings
+from mqtt_exporter.processing.middleware.plain import PlainTextInplaceProcessMiddleware
+from mqtt_exporter.processing.pipline import MiddlewarePipeline
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger("mqtt-exporter")
@@ -402,6 +404,18 @@ def expose_metrics(_, userdata, msg):
     prom_msg_counter.labels(**labels).inc()
 
 
+def on_message_receive(client, userdata, msg):
+    """
+    The callback function when a message is received
+    preprocesses the received message according to the installed middleware
+    then calls expose_metrics
+    """
+
+    pipe = MiddlewarePipeline(middlewares=[PlainTextInplaceProcessMiddleware()])
+    pipe.process(client, userdata, msg)
+    expose_metrics(client, userdata, msg)
+
+
 def main():
     """Start the exporter."""
     if settings.MQTT_V5_PROTOCOL:
@@ -445,7 +459,7 @@ def main():
 
     # define mqtt client
     client.on_connect = subscribe
-    client.on_message = expose_metrics
+    client.on_message = on_message_receive
 
     # start the connection and the loop
     if settings.MQTT_USERNAME and settings.MQTT_PASSWORD:
