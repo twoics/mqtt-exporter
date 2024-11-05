@@ -12,5 +12,5 @@ class PlainTextInplaceProcessMiddleware(InplaceProcessMiddleware):
         message = data['message']
         try:
             json.loads(message.payload)
-        except JSONDecodeError:
+        except (JSONDecodeError, UnicodeDecodeError):
             message.payload = json.dumps({'msg': message.payload.decode("latin-1")})
